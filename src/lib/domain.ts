@@ -1,16 +1,19 @@
-export const APP_VERSION = '0.2.0';
-export const DAILY_ENERGY_CAP = 40;
+export const APP_VERSION = '0.3.0';
+export const DAILY_ENERGY_CAP = 60;
 
+export type PetSpecies = 'cloud' | 'fox' | 'bunny';
 export type TaskType = 'daily' | 'once' | 'weekly';
 export type TaskCategory = 'homework' | 'reading' | 'recite' | 'tidy' | 'review' | 'wellbeing';
 export type Difficulty = 'easy' | 'normal' | 'brave';
-export type TaskStatus = 'open' | 'pending_parent' | 'completed' | 'approved';
+export type TaskStatus = 'open' | 'in_progress' | 'completed' | 'approved';
 export type MessageType = 'encouragement' | 'story' | 'summary' | 'reminder';
+export type ShopItemType = 'food' | 'care' | 'outfit';
 
 export interface Stage {
   id: string;
   name: string;
   minEnergy: number;
+  minActiveDays: number;
   title: string;
   diary: string;
   unlocks: string[];
@@ -20,15 +23,22 @@ export interface ChildProfile {
   nickname: string;
   gradeBand: string;
   createdAt: string;
+  onboarded: boolean;
 }
 
 export interface PetProfile {
   name: string;
-  species: 'cloud-star';
+  species: PetSpecies;
   totalEnergy: number;
+  energyBalance: number;
   companion: number;
   stageId: string;
   unlockedItems: string[];
+  purchasedItems: string[];
+  equippedOutfit: string[];
+  fullness: number;
+  cleanliness: number;
+  joy: number;
   lastInteractionAt: string | null;
 }
 
@@ -70,15 +80,20 @@ export interface DailyTask {
   difficulty: Difficulty;
   difficultyLabel: string;
   estimatedMinutes: number;
+  targetMinutes: number;
   energyValue: number;
+  earnedEnergy: number;
   requiresParentApproval: boolean;
   countsTowardStreak: boolean;
   dateKey: string;
   weekKey: string | null;
   dueLabel: string;
   status: TaskStatus;
+  startedAt: string | null;
   completedAt: string | null;
   approvedAt: string | null;
+  elapsedMinutes: number | null;
+  bonusReason: string;
   note: string;
 }
 
@@ -101,10 +116,29 @@ export interface EnergyEntry {
   createdAt: string;
 }
 
+export interface ShopItem {
+  id: string;
+  type: ShopItemType;
+  name: string;
+  cost: number;
+  effect: number;
+  description: string;
+  icon: string;
+  stageRequired?: string;
+}
+
+export interface ActivityEntry {
+  id: string;
+  type: 'task' | 'feed' | 'clean' | 'dress' | 'upgrade' | 'onboarding';
+  text: string;
+  createdAt: string;
+}
+
 export interface PetSnapshot {
   id: string;
   dateKey: string;
   petName: string;
+  species: PetSpecies;
   stageId: string;
   stageName: string;
   stageTitle: string;
@@ -112,11 +146,19 @@ export interface PetSnapshot {
   moodLabel: string;
   message: string;
   totalEnergy: number;
+  energyBalance: number;
   todayEnergy: number;
+  activeDays: number;
   streak: number;
   nextStageName: string;
+  nextStageEnergyRemaining: number;
+  nextStageDaysRemaining: number;
   progressToNext: number;
   unlockedItems: string[];
+  equippedOutfit: string[];
+  fullness: number;
+  cleanliness: number;
+  joy: number;
 }
 
 export interface DiaryEntry {
@@ -138,40 +180,116 @@ export interface FamilyState {
   energyLedger: EnergyEntry[];
   petSnapshots: PetSnapshot[];
   aiMessageLogs: DiaryEntry[];
+  activityLog: ActivityEntry[];
 }
+
+export const PET_CHOICES: Array<{
+  id: PetSpecies;
+  name: string;
+  tagline: string;
+  palette: string;
+}> = [
+  { id: 'cloud', name: '星云团', tagline: '爱发光，喜欢被轻轻照顾。', palette: '蓝绿' },
+  { id: 'fox', name: '星尾狐', tagline: '跑得快，最爱陪你挑战计时任务。', palette: '珊瑚' },
+  { id: 'bunny', name: '月光兔', tagline: '很温柔，喜欢阅读和睡前故事。', palette: '紫金' }
+];
 
 export const STAGES: Stage[] = [
   {
-    id: 'egg',
-    name: '云朵蛋',
+    id: 'baby',
+    name: '幼幼形态',
     minEnergy: 0,
-    title: '暖暖的小开始',
-    diary: '我刚来到这个家，最喜欢听你讲今天的小发现。',
-    unlocks: ['soft-bed']
+    minActiveDays: 0,
+    title: '刚搬进来的小伙伴',
+    diary: '我刚来到这个房间，想先认识你，也想看看你会给我起什么名字。',
+    unlocks: ['starter-bed']
   },
   {
-    id: 'sprout',
-    name: '云芽幼崽',
-    minEnergy: 30,
-    title: '会发光的小伙伴',
-    diary: '你每天多一点点努力，我也跟着长出亮亮的小云芽。',
-    unlocks: ['reading-lamp', 'star-rug']
+    id: 'kid',
+    name: '闪光形态',
+    minEnergy: 40,
+    minActiveDays: 2,
+    title: '开始会发光了',
+    diary: '你连续照顾我，我也学会了把房间点亮一点点。',
+    unlocks: ['star-hat', 'bubble-brush']
   },
   {
     id: 'buddy',
-    name: '星云伙伴',
-    minEnergy: 90,
-    title: '能陪你复盘的一天',
-    diary: '我学会了帮你记住进步，也会提醒你休息眼睛。',
-    unlocks: ['story-corner', 'focus-clock']
+    name: '伙伴形态',
+    minEnergy: 120,
+    minActiveDays: 5,
+    title: '可以一起冒险了',
+    diary: '我长出新的样子，也记住了你的学习节奏。',
+    unlocks: ['cloud-scarf', 'story-corner']
   },
   {
     id: 'guardian',
-    name: '小小守护者',
-    minEnergy: 180,
+    name: '守护形态',
+    minEnergy: 260,
+    minActiveDays: 10,
     title: '自己的节奏守护者',
-    diary: '你已经很会照顾自己的学习节奏了，我为你闪闪发光。',
-    unlocks: ['guardian-cape', 'memory-album']
+    diary: '你已经很会照顾自己和我了，我们可以去更远的星光房间。',
+    unlocks: ['hero-cape', 'memory-album']
+  }
+];
+
+export const SHOP_ITEMS: ShopItem[] = [
+  {
+    id: 'star-cookie',
+    type: 'food',
+    name: '星星饼干',
+    cost: 6,
+    effect: 16,
+    description: '让宠物饱饱值上升。',
+    icon: 'cookie'
+  },
+  {
+    id: 'moon-milk',
+    type: 'food',
+    name: '月光奶',
+    cost: 9,
+    effect: 24,
+    description: '饱饱值和开心值都会上升。',
+    icon: 'milk'
+  },
+  {
+    id: 'bubble-brush',
+    type: 'care',
+    name: '泡泡刷',
+    cost: 8,
+    effect: 26,
+    description: '帮宠物洗得亮亮的。',
+    icon: 'brush'
+  },
+  {
+    id: 'star-hat',
+    type: 'outfit',
+    name: '星星帽',
+    cost: 24,
+    effect: 0,
+    description: '戴上之后宠物更像小冒险家。',
+    icon: 'hat',
+    stageRequired: 'kid'
+  },
+  {
+    id: 'cloud-scarf',
+    type: 'outfit',
+    name: '云朵围巾',
+    cost: 36,
+    effect: 0,
+    description: '软软的围巾，适合认真完成任务后换上。',
+    icon: 'scarf',
+    stageRequired: 'buddy'
+  },
+  {
+    id: 'hero-cape',
+    type: 'outfit',
+    name: '小守护披风',
+    cost: 54,
+    effect: 0,
+    description: '守护形态解锁的特别装扮。',
+    icon: 'cape',
+    stageRequired: 'guardian'
   }
 ];
 
@@ -231,7 +349,7 @@ export const DEFAULT_TASK_TEMPLATES: TaskTemplate[] = [
     difficulty: 'normal',
     estimatedMinutes: 30,
     energyValue: 14,
-    requiresParentApproval: true,
+    requiresParentApproval: false,
     countsTowardStreak: true,
     enabled: true,
     daysOfWeek: [1, 2, 3, 4, 5]
@@ -246,19 +364,6 @@ export const DEFAULT_TASK_TEMPLATES: TaskTemplate[] = [
     energyValue: 6,
     requiresParentApproval: false,
     countsTowardStreak: true,
-    enabled: true,
-    daysOfWeek: [0, 1, 2, 3, 4, 5, 6]
-  },
-  {
-    id: 'weekly-review',
-    title: '本周错题/收获复盘 1 次',
-    type: 'weekly',
-    category: 'review',
-    difficulty: 'brave',
-    estimatedMinutes: 15,
-    energyValue: 16,
-    requiresParentApproval: true,
-    countsTowardStreak: false,
     enabled: true,
     daysOfWeek: [0, 1, 2, 3, 4, 5, 6]
   }
@@ -310,6 +415,22 @@ export function weekKey(input?: Date | string | number | null): string {
   return `${dateKey(date)}-week`;
 }
 
+function clamp(value: number, min: number, max: number): number {
+  return Math.max(min, Math.min(max, value));
+}
+
+function logActivity(state: FamilyState, type: ActivityEntry['type'], text: string, now?: Date | string | number) {
+  state.activityLog = [
+    {
+      id: `activity_${type}_${toDate(now).getTime()}_${state.activityLog.length}`,
+      type,
+      text,
+      createdAt: isoNow(now)
+    },
+    ...state.activityLog
+  ].slice(0, 20);
+}
+
 export function createInitialState(now?: Date | string | number): FamilyState {
   const createdAt = isoNow(now);
   return {
@@ -317,15 +438,22 @@ export function createInitialState(now?: Date | string | number): FamilyState {
     childProfile: {
       nickname: '小小探险家',
       gradeBand: 'primary',
-      createdAt
+      createdAt,
+      onboarded: false
     },
     petProfile: {
       name: '星星',
-      species: 'cloud-star',
+      species: 'cloud',
       totalEnergy: 0,
+      energyBalance: 18,
       companion: 0,
-      stageId: 'egg',
-      unlockedItems: ['soft-bed'],
+      stageId: 'baby',
+      unlockedItems: ['starter-bed'],
+      purchasedItems: [],
+      equippedOutfit: [],
+      fullness: 64,
+      cleanliness: 70,
+      joy: 68,
       lastInteractionAt: null
     },
     parentSettings: {
@@ -345,32 +473,49 @@ export function createInitialState(now?: Date | string | number): FamilyState {
     checkIns: [],
     energyLedger: [],
     petSnapshots: [],
-    aiMessageLogs: []
+    aiMessageLogs: [],
+    activityLog: []
   };
 }
 
 export function normalizeState(input?: Partial<FamilyState> | null, now?: Date | string | number): FamilyState {
-  const state = input ? clone(input) : createInitialState(now);
+  const incoming = input ? clone(input) : createInitialState(now);
   const fresh = createInitialState(now);
   const normalized: FamilyState = {
     ...fresh,
-    ...state,
-    childProfile: { ...fresh.childProfile, ...(state.childProfile ?? {}) },
-    petProfile: { ...fresh.petProfile, ...(state.petProfile ?? {}) },
+    ...incoming,
+    version: APP_VERSION,
+    childProfile: { ...fresh.childProfile, ...(incoming.childProfile ?? {}) },
+    petProfile: {
+      ...fresh.petProfile,
+      ...(incoming.petProfile ?? {}),
+      species: (incoming.petProfile?.species as PetSpecies) || fresh.petProfile.species,
+      energyBalance:
+        typeof incoming.petProfile?.energyBalance === 'number'
+          ? incoming.petProfile.energyBalance
+          : incoming.petProfile?.totalEnergy || fresh.petProfile.energyBalance,
+      purchasedItems: Array.isArray(incoming.petProfile?.purchasedItems) ? incoming.petProfile.purchasedItems : [],
+      equippedOutfit: Array.isArray(incoming.petProfile?.equippedOutfit) ? incoming.petProfile.equippedOutfit : [],
+      fullness: typeof incoming.petProfile?.fullness === 'number' ? incoming.petProfile.fullness : fresh.petProfile.fullness,
+      cleanliness:
+        typeof incoming.petProfile?.cleanliness === 'number' ? incoming.petProfile.cleanliness : fresh.petProfile.cleanliness,
+      joy: typeof incoming.petProfile?.joy === 'number' ? incoming.petProfile.joy : fresh.petProfile.joy
+    },
     parentSettings: {
       ...fresh.parentSettings,
-      ...(state.parentSettings ?? {}),
+      ...(incoming.parentSettings ?? {}),
       quietHours: {
         ...fresh.parentSettings.quietHours,
-        ...(state.parentSettings?.quietHours ?? {})
+        ...(incoming.parentSettings?.quietHours ?? {})
       }
     },
-    taskTemplates: Array.isArray(state.taskTemplates) ? state.taskTemplates : clone(DEFAULT_TASK_TEMPLATES),
-    dailyTasks: state.dailyTasks ?? {},
-    checkIns: Array.isArray(state.checkIns) ? state.checkIns : [],
-    energyLedger: Array.isArray(state.energyLedger) ? state.energyLedger : [],
-    petSnapshots: Array.isArray(state.petSnapshots) ? state.petSnapshots : [],
-    aiMessageLogs: Array.isArray(state.aiMessageLogs) ? state.aiMessageLogs : []
+    taskTemplates: Array.isArray(incoming.taskTemplates) ? incoming.taskTemplates : clone(DEFAULT_TASK_TEMPLATES),
+    dailyTasks: incoming.dailyTasks ?? {},
+    checkIns: Array.isArray(incoming.checkIns) ? incoming.checkIns : [],
+    energyLedger: Array.isArray(incoming.energyLedger) ? incoming.energyLedger : [],
+    petSnapshots: Array.isArray(incoming.petSnapshots) ? incoming.petSnapshots : [],
+    aiMessageLogs: Array.isArray(incoming.aiMessageLogs) ? incoming.aiMessageLogs : [],
+    activityLog: Array.isArray(incoming.activityLog) ? incoming.activityLog : []
   };
   syncPetProgress(normalized);
   return normalized;
@@ -408,15 +553,20 @@ function makeDailyTask(template: TaskTemplate, inputDate: Date | string | number
     difficulty: template.difficulty,
     difficultyLabel: DIFFICULTY_LABELS[template.difficulty] || '标准',
     estimatedMinutes: Number(template.estimatedMinutes) || 0,
+    targetMinutes: Number(template.estimatedMinutes) || 10,
     energyValue: Number(template.energyValue) || 0,
+    earnedEnergy: 0,
     requiresParentApproval: Boolean(template.requiresParentApproval),
     countsTowardStreak: template.countsTowardStreak !== false,
     dateKey: dateKey(inputDate),
     weekKey: template.type === 'weekly' ? weekKey(inputDate) : null,
     dueLabel: template.type === 'weekly' ? '本周完成一次' : '今天',
     status: 'open',
+    startedAt: null,
     completedAt: null,
     approvedAt: null,
+    elapsedMinutes: null,
+    bonusReason: '',
     note: ''
   };
 }
@@ -442,7 +592,7 @@ export function getTasksForDate(stateInput: FamilyState | Partial<FamilyState>, 
   return Object.values(state.dailyTasks)
     .filter((task) => task.dateKey === today || task.weekKey === currentWeek)
     .sort((a, b) => {
-      const statusWeight: Record<TaskStatus, number> = { open: 0, pending_parent: 1, completed: 2, approved: 2 };
+      const statusWeight: Record<TaskStatus, number> = { in_progress: 0, open: 1, completed: 2, approved: 2 };
       return statusWeight[a.status] - statusWeight[b.status];
     });
 }
@@ -457,13 +607,26 @@ export function energyEarnedOnDate(state: FamilyState, targetDateKey: string): n
     .reduce((sum, entry) => sum + entry.amount, 0);
 }
 
+export function calculateTimedEnergy(baseEnergy: number, targetMinutes: number, elapsedMinutes: number) {
+  const target = Math.max(1, targetMinutes);
+  const elapsed = Math.max(1, elapsedMinutes);
+  if (elapsed <= target * 0.7) {
+    return { amount: Math.ceil(baseEnergy * 1.4), reason: '提前完成，获得速度奖励' };
+  }
+  if (elapsed <= target) {
+    return { amount: Math.ceil(baseEnergy * 1.15), reason: '按时完成，获得准时奖励' };
+  }
+  return { amount: Math.max(1, Math.ceil(baseEnergy * 0.75)), reason: '已经完成，收下基础能量' };
+}
+
 function applyEnergyForTask(state: FamilyState, task: DailyTask, approvedAt: Date | string | number): FamilyState {
   if (hasEarnedEnergyForTask(state, task.id)) {
     return state;
   }
+  const previousStage = state.petProfile.stageId;
   const earnedToday = energyEarnedOnDate(state, dateKey(approvedAt));
   const remaining = Math.max(0, DAILY_ENERGY_CAP - earnedToday);
-  const amount = Math.min(Number(task.energyValue) || 0, remaining);
+  const amount = Math.min(Number(task.earnedEnergy || task.energyValue) || 0, remaining);
   if (amount <= 0) {
     return state;
   }
@@ -477,14 +640,56 @@ function applyEnergyForTask(state: FamilyState, task: DailyTask, approvedAt: Dat
     createdAt: isoNow(approvedAt)
   });
   state.petProfile.totalEnergy += amount;
+  state.petProfile.energyBalance += amount;
+  state.petProfile.joy = clamp(state.petProfile.joy + 8, 0, 100);
+  logActivity(state, 'task', `${task.title} 完成，获得 ${amount} 能量。${task.bonusReason}`, approvedAt);
   syncPetProgress(state);
+  if (previousStage !== state.petProfile.stageId) {
+    const stage = STAGES.find((item) => item.id === state.petProfile.stageId);
+    logActivity(state, 'upgrade', `${state.petProfile.name}升级成 ${stage?.name || '新形态'}。`, approvedAt);
+  }
+  return state;
+}
+
+export function setupPet(
+  stateInput: FamilyState | Partial<FamilyState>,
+  options: { childNickname: string; petName: string; species: PetSpecies; now?: Date | string | number }
+): FamilyState {
+  const state = normalizeState(stateInput, options.now);
+  state.childProfile.nickname = options.childNickname.trim() || '小小探险家';
+  state.childProfile.onboarded = true;
+  state.petProfile.name = options.petName.trim() || PET_CHOICES.find((choice) => choice.id === options.species)?.name || '星星';
+  state.petProfile.species = options.species;
+  state.petProfile.lastInteractionAt = isoNow(options.now);
+  logActivity(state, 'onboarding', `${state.petProfile.name}搬进了你的宠物房间。`, options.now);
+  return state;
+}
+
+export function startTask(
+  stateInput: FamilyState | Partial<FamilyState>,
+  taskId: string,
+  options: { targetMinutes: number; startedAt?: Date | string | number }
+): FamilyState {
+  const startedAt = options.startedAt || new Date();
+  const state = buildDailyTasks(stateInput, startedAt);
+  const task = state.dailyTasks[taskId];
+  if (!task) {
+    throw new Error(`Task not found: ${taskId}`);
+  }
+  if (task.status !== 'open') {
+    return state;
+  }
+  task.status = 'in_progress';
+  task.startedAt = isoNow(startedAt);
+  task.targetMinutes = clamp(Math.round(options.targetMinutes || task.estimatedMinutes), 1, 180);
+  logActivity(state, 'task', `${task.title} 开始啦，目标 ${task.targetMinutes} 分钟。`, startedAt);
   return state;
 }
 
 export function completeTask(
   stateInput: FamilyState | Partial<FamilyState>,
   taskId: string,
-  options: { completedAt?: Date | string | number; note?: string } = {}
+  options: { completedAt?: Date | string | number; note?: string; elapsedMinutes?: number } = {}
 ): FamilyState {
   const completedAt = options.completedAt || new Date();
   const state = buildDailyTasks(stateInput, completedAt);
@@ -492,17 +697,23 @@ export function completeTask(
   if (!task) {
     throw new Error(`Task not found: ${taskId}`);
   }
-  if (task.status === 'completed' || task.status === 'approved' || task.status === 'pending_parent') {
+  if (task.status === 'completed' || task.status === 'approved') {
     return state;
   }
-  task.completedAt = isoNow(completedAt);
-  task.note = options.note || '';
-  if (task.requiresParentApproval) {
-    task.status = 'pending_parent';
-  } else {
-    task.status = 'completed';
-    applyEnergyForTask(state, task, completedAt);
+  if (task.status === 'open') {
+    task.startedAt = task.startedAt || isoNow(completedAt);
+    task.status = 'in_progress';
   }
+  const startedAt = task.startedAt ? toDate(task.startedAt) : toDate(completedAt);
+  const computedElapsed = Math.max(1, Math.ceil((toDate(completedAt).getTime() - startedAt.getTime()) / 60000));
+  const elapsedMinutes = Math.max(1, Math.round(options.elapsedMinutes || computedElapsed));
+  const energy = calculateTimedEnergy(task.energyValue, task.targetMinutes || task.estimatedMinutes, elapsedMinutes);
+  task.completedAt = isoNow(completedAt);
+  task.elapsedMinutes = elapsedMinutes;
+  task.earnedEnergy = energy.amount;
+  task.bonusReason = energy.reason;
+  task.note = options.note || '';
+  task.status = task.requiresParentApproval ? 'completed' : 'approved';
   state.checkIns.push({
     id: `check_${task.id}_${toDate(completedAt).getTime()}`,
     taskId: task.id,
@@ -511,6 +722,9 @@ export function completeTask(
     status: task.status,
     createdAt: isoNow(completedAt)
   });
+  if (!task.requiresParentApproval) {
+    applyEnergyForTask(state, task, completedAt);
+  }
   return state;
 }
 
@@ -525,7 +739,7 @@ export function approveTask(
   if (!task) {
     throw new Error(`Task not found: ${taskId}`);
   }
-  if (task.status === 'pending_parent') {
+  if (task.status === 'completed') {
     task.status = 'approved';
     task.approvedAt = isoNow(approvedAt);
     applyEnergyForTask(state, task, approvedAt);
@@ -540,13 +754,18 @@ export function undoTask(stateInput: FamilyState | Partial<FamilyState>, taskId:
     return state;
   }
   task.status = 'open';
+  task.startedAt = null;
   task.completedAt = null;
   task.approvedAt = null;
+  task.elapsedMinutes = null;
+  task.earnedEnergy = 0;
+  task.bonusReason = '';
   task.note = '';
   const removed = state.energyLedger.filter((entry) => entry.taskId === taskId);
   state.energyLedger = state.energyLedger.filter((entry) => entry.taskId !== taskId);
   const removedAmount = removed.reduce((sum, entry) => sum + entry.amount, 0);
   state.petProfile.totalEnergy = Math.max(0, state.petProfile.totalEnergy - removedAmount);
+  state.petProfile.energyBalance = Math.max(0, state.petProfile.energyBalance - removedAmount);
   syncPetProgress(state);
   return state;
 }
@@ -554,31 +773,45 @@ export function undoTask(stateInput: FamilyState | Partial<FamilyState>, taskId:
 export function getPendingApprovals(stateInput: FamilyState | Partial<FamilyState>): DailyTask[] {
   const state = normalizeState(stateInput);
   return Object.values(state.dailyTasks)
-    .filter((task) => task.status === 'pending_parent')
+    .filter((task) => task.requiresParentApproval && task.status === 'completed' && !hasEarnedEnergyForTask(state, task.id))
     .sort((a, b) => String(a.completedAt).localeCompare(String(b.completedAt)));
 }
 
+export function getActiveDays(stateInput: FamilyState | Partial<FamilyState>): number {
+  const ledger = Array.isArray(stateInput.energyLedger) ? stateInput.energyLedger : [];
+  return new Set(ledger.map((entry) => entry.dateKey)).size;
+}
+
+export function getStageForProgress(totalEnergy: number, activeDays: number): Stage {
+  return STAGES.reduce((current, stage) => {
+    return totalEnergy >= stage.minEnergy && activeDays >= stage.minActiveDays ? stage : current;
+  }, STAGES[0]);
+}
+
 export function getStageForEnergy(totalEnergy: number): Stage {
-  return STAGES.reduce((current, stage) => (totalEnergy >= stage.minEnergy ? stage : current), STAGES[0]);
+  return getStageForProgress(totalEnergy, Number.MAX_SAFE_INTEGER);
 }
 
-export function getNextStage(totalEnergy: number): Stage | null {
-  return STAGES.find((stage) => stage.minEnergy > totalEnergy) || null;
+export function getNextStage(totalEnergy: number, activeDays = 0): Stage | null {
+  return STAGES.find((stage) => totalEnergy < stage.minEnergy || activeDays < stage.minActiveDays) || null;
 }
 
-function collectUnlockedItems(totalEnergy: number): string[] {
-  return STAGES.filter((stage) => totalEnergy >= stage.minEnergy).flatMap((stage) => stage.unlocks);
+function collectUnlockedItems(totalEnergy: number, activeDays: number): string[] {
+  return STAGES.filter((stage) => totalEnergy >= stage.minEnergy && activeDays >= stage.minActiveDays).flatMap(
+    (stage) => stage.unlocks
+  );
 }
 
 function syncPetProgress(state: FamilyState): FamilyState {
-  const stage = getStageForEnergy(state.petProfile.totalEnergy || 0);
+  const activeDays = getActiveDays(state);
+  const stage = getStageForProgress(state.petProfile.totalEnergy || 0, activeDays);
   state.petProfile.stageId = stage.id;
-  state.petProfile.unlockedItems = Array.from(new Set(collectUnlockedItems(state.petProfile.totalEnergy || 0)));
+  state.petProfile.unlockedItems = Array.from(new Set(collectUnlockedItems(state.petProfile.totalEnergy || 0, activeDays)));
   return state;
 }
 
 function isTaskEarned(task: DailyTask): boolean {
-  return task.status === 'completed' || task.status === 'approved';
+  return task.status === 'approved';
 }
 
 export function calculateStreak(stateInput: FamilyState | Partial<FamilyState>, inputDate: Date | string | number): number {
@@ -601,12 +834,13 @@ export function getTaskStats(stateInput: FamilyState | Partial<FamilyState>, inp
   const state = buildDailyTasks(stateInput, inputDate);
   const tasks = getTasksForDate(state, inputDate);
   const completed = tasks.filter(isTaskEarned).length;
-  const pending = tasks.filter((task) => task.status === 'pending_parent').length;
+  const inProgress = tasks.filter((task) => task.status === 'in_progress').length;
   const open = tasks.filter((task) => task.status === 'open').length;
   return {
     total: tasks.length,
     completed,
-    pending,
+    pending: getPendingApprovals(state).length,
+    inProgress,
     open,
     todayEnergy: energyEarnedOnDate(state, dateKey(inputDate)),
     streak: calculateStreak(state, inputDate)
@@ -616,12 +850,36 @@ export function getTaskStats(stateInput: FamilyState | Partial<FamilyState>, inp
 export function getPetMood(stateInput: FamilyState | Partial<FamilyState>, inputDate: Date | string | number) {
   const state = buildDailyTasks(stateInput, inputDate);
   const stats = getTaskStats(state, inputDate);
-  if (stats.pending > 0) {
+  if (!state.childProfile.onboarded) {
     return {
-      id: 'waiting',
-      label: '等家长确认',
+      id: 'new',
+      label: '等待见面',
       tone: 'warm',
-      message: '我已经看到你的努力啦，等爸爸妈妈点一下确认，我们就一起收下能量。'
+      message: '先选一个宠物，给它起名字，它就会住进你的房间。'
+    };
+  }
+  if (stats.inProgress > 0) {
+    return {
+      id: 'focus',
+      label: '陪你专注',
+      tone: 'focus',
+      message: '我正在旁边陪你计时，完成后我们马上收能量。'
+    };
+  }
+  if (state.petProfile.cleanliness < 35) {
+    return {
+      id: 'dusty',
+      label: '想洗亮亮',
+      tone: 'care',
+      message: '我想洗个泡泡澡，洗完会更闪亮。'
+    };
+  }
+  if (state.petProfile.fullness < 35) {
+    return {
+      id: 'snack',
+      label: '想吃点心',
+      tone: 'care',
+      message: '我有点想吃星星点心，吃完会更有精神。'
     };
   }
   if (stats.todayEnergy >= 24) {
@@ -629,39 +887,34 @@ export function getPetMood(stateInput: FamilyState | Partial<FamilyState>, input
       id: 'glowing',
       label: '闪闪发光',
       tone: 'celebrate',
-      message: '今天的节奏很棒，我的小云朵都亮起来了。'
-    };
-  }
-  if (stats.completed > 0) {
-    return {
-      id: 'steady',
-      label: '稳稳前进',
-      tone: 'encourage',
-      message: '一点点完成也很珍贵，我们正在把好习惯攒起来。'
+      message: '今天的节奏很棒，我的小房间都亮起来了。'
     };
   }
   return {
-    id: 'resting',
-    label: '安静陪伴',
+    id: 'ready',
+    label: '准备好了',
     tone: 'gentle',
-    message: '我在这里陪你，先选一件最容易开始的小事吧。'
+    message: '先挑一个小任务，点开始，我会一起陪你。'
   };
 }
 
 export function generatePetSnapshot(stateInput: FamilyState | Partial<FamilyState>, inputDate: Date | string | number) {
   const state = buildDailyTasks(stateInput, inputDate);
   syncPetProgress(state);
-  const stage = getStageForEnergy(state.petProfile.totalEnergy);
-  const nextStage = getNextStage(state.petProfile.totalEnergy);
+  const activeDays = getActiveDays(state);
+  const stage = getStageForProgress(state.petProfile.totalEnergy, activeDays);
+  const nextStage = getNextStage(state.petProfile.totalEnergy, activeDays);
   const mood = getPetMood(state, inputDate);
   const stats = getTaskStats(state, inputDate);
-  const progressToNext = nextStage
+  const energyProgress = nextStage
     ? Math.min(100, Math.round((state.petProfile.totalEnergy / nextStage.minEnergy) * 100))
     : 100;
+  const dayProgress = nextStage ? Math.min(100, Math.round((activeDays / nextStage.minActiveDays) * 100)) : 100;
   const snapshot: PetSnapshot = {
     id: `snapshot_${dateKey(inputDate)}`,
     dateKey: dateKey(inputDate),
     petName: state.petProfile.name,
+    species: state.petProfile.species,
     stageId: stage.id,
     stageName: stage.name,
     stageTitle: stage.title,
@@ -669,15 +922,75 @@ export function generatePetSnapshot(stateInput: FamilyState | Partial<FamilyStat
     moodLabel: mood.label,
     message: mood.message,
     totalEnergy: state.petProfile.totalEnergy,
+    energyBalance: state.petProfile.energyBalance,
     todayEnergy: stats.todayEnergy,
+    activeDays,
     streak: stats.streak,
     nextStageName: nextStage ? nextStage.name : '已满级',
-    progressToNext,
-    unlockedItems: state.petProfile.unlockedItems
+    nextStageEnergyRemaining: nextStage ? Math.max(0, nextStage.minEnergy - state.petProfile.totalEnergy) : 0,
+    nextStageDaysRemaining: nextStage ? Math.max(0, nextStage.minActiveDays - activeDays) : 0,
+    progressToNext: Math.min(100, Math.round((energyProgress + dayProgress) / 2)),
+    unlockedItems: state.petProfile.unlockedItems,
+    equippedOutfit: state.petProfile.equippedOutfit,
+    fullness: state.petProfile.fullness,
+    cleanliness: state.petProfile.cleanliness,
+    joy: state.petProfile.joy
   };
   state.petSnapshots = state.petSnapshots.filter((item) => item.id !== snapshot.id);
   state.petSnapshots.push(snapshot);
   return { state, snapshot };
+}
+
+export function spendEnergy(stateInput: FamilyState | Partial<FamilyState>, cost: number): FamilyState {
+  const state = normalizeState(stateInput);
+  if (state.petProfile.energyBalance < cost) {
+    throw new Error('能量不够，先完成一个小任务吧。');
+  }
+  state.petProfile.energyBalance -= cost;
+  return state;
+}
+
+export function useShopItem(
+  stateInput: FamilyState | Partial<FamilyState>,
+  itemId: string,
+  now?: Date | string | number
+): FamilyState {
+  let state = normalizeState(stateInput, now);
+  const item = SHOP_ITEMS.find((candidate) => candidate.id === itemId);
+  if (!item) {
+    throw new Error('没有找到这个道具。');
+  }
+  const stageIndex = STAGES.findIndex((stage) => stage.id === state.petProfile.stageId);
+  const requiredIndex = item.stageRequired ? STAGES.findIndex((stage) => stage.id === item.stageRequired) : 0;
+  if (item.stageRequired && stageIndex < requiredIndex) {
+    throw new Error(`升级到${STAGES[requiredIndex].name}后才能使用。`);
+  }
+  const alreadyOwned = state.petProfile.purchasedItems.includes(item.id);
+  if (item.type === 'outfit' && alreadyOwned) {
+    state.petProfile.equippedOutfit = state.petProfile.equippedOutfit.includes(item.id)
+      ? state.petProfile.equippedOutfit.filter((id) => id !== item.id)
+      : [...state.petProfile.equippedOutfit, item.id];
+    logActivity(state, 'dress', `${state.petProfile.name}换上了${item.name}。`, now);
+    return state;
+  }
+  state = spendEnergy(state, item.cost);
+  if (item.type === 'food') {
+    state.petProfile.fullness = clamp(state.petProfile.fullness + item.effect, 0, 100);
+    state.petProfile.joy = clamp(state.petProfile.joy + Math.round(item.effect / 2), 0, 100);
+    logActivity(state, 'feed', `${state.petProfile.name}吃了${item.name}，饱饱值上升。`, now);
+  }
+  if (item.type === 'care') {
+    state.petProfile.cleanliness = clamp(state.petProfile.cleanliness + item.effect, 0, 100);
+    state.petProfile.joy = clamp(state.petProfile.joy + 8, 0, 100);
+    logActivity(state, 'clean', `${state.petProfile.name}洗得亮亮的。`, now);
+  }
+  if (item.type === 'outfit') {
+    state.petProfile.purchasedItems.push(item.id);
+    state.petProfile.equippedOutfit.push(item.id);
+    state.petProfile.joy = clamp(state.petProfile.joy + 12, 0, 100);
+    logActivity(state, 'dress', `${state.petProfile.name}获得了${item.name}。`, now);
+  }
+  return state;
 }
 
 export function sanitizeSafetyText(text: string): string {
@@ -691,10 +1004,10 @@ export function summarizeToday(stateInput: FamilyState | Partial<FamilyState>, i
   const tasks = getTasksForDate(state, inputDate);
   const done = tasks.filter(isTaskEarned);
   if (done.length === 0) {
-    return '今天还可以从一件小事开始，比如阅读几页或整理书包。';
+    return '今天可以先从一个小任务开始。';
   }
   const names = done.slice(0, 3).map((task) => task.title).join('、');
-  return `今天完成了 ${names}${done.length > 3 ? ' 等任务' : ''}，这是很扎实的进步。`;
+  return `今天完成了 ${names}${done.length > 3 ? ' 等任务' : ''}，获得了可以照顾宠物的能量。`;
 }
 
 export function generateAiMessage(
@@ -708,10 +1021,10 @@ export function generateAiMessage(
   const petName = state.petProfile.name || '星星';
   const summary = summarizeToday(state, inputDate);
   const templates: Record<MessageType, string> = {
-    encouragement: `${childName}，我是${petName}。${summary} 我喜欢你慢慢变厉害的样子，明天也按自己的节奏来。`,
-    story: `今晚的小故事：${petName}在云朵房间点亮了一盏阅读灯，灯光不催人，只陪着${childName}把一个小目标完成。`,
-    summary: `${snapshot.stageName}日报：今日能量 ${snapshot.todayEnergy}/${DAILY_ENERGY_CAP}，连续成长 ${snapshot.streak} 天。${summary}`,
-    reminder: `${petName}轻轻提醒：先挑最容易开始的一项，完成后给自己一个大大的点头。`
+    encouragement: `${childName}，我是${petName}。${summary} 我喜欢你照顾我，也喜欢你照顾自己的节奏。`,
+    story: `今晚的小故事：${petName}把${childName}攒下的能量做成一盏小灯，照亮了宠物房间的新角落。`,
+    summary: `${snapshot.stageName}日报：今日能量 ${snapshot.todayEnergy}/${DAILY_ENERGY_CAP}，可用能量 ${snapshot.energyBalance}，活跃 ${snapshot.activeDays} 天。${summary}`,
+    reminder: `${petName}轻轻提醒：先点开始，选一个时间，我会在旁边陪你完成。`
   };
   const mode = templates[type] ? type : 'encouragement';
   const message: DiaryEntry = {
@@ -728,7 +1041,9 @@ export function generateAiMessage(
 export function interactWithPet(stateInput: FamilyState | Partial<FamilyState>, inputDate: Date | string | number): FamilyState {
   const state = normalizeState(stateInput, inputDate);
   state.petProfile.companion += 1;
+  state.petProfile.joy = clamp(state.petProfile.joy + 4, 0, 100);
   state.petProfile.lastInteractionAt = isoNow(inputDate);
+  logActivity(state, 'feed', `${state.petProfile.name}开心地回应了你。`, inputDate);
   return generateAiMessage(state, 'encouragement', inputDate).state;
 }
 
@@ -738,7 +1053,7 @@ export function addTaskTemplate(stateInput: FamilyState | Partial<FamilyState>, 
   if (!title) {
     throw new Error('Task title is required');
   }
-  const energyValue = Math.max(1, Math.min(20, Number(input.energyValue) || 8));
+  const energyValue = Math.max(1, Math.min(24, Number(input.energyValue) || 8));
   const template: TaskTemplate = {
     id: input.id || `task_${Date.now()}`,
     title,
@@ -771,10 +1086,8 @@ export function updateTaskTemplate(
       ...template,
       ...patch,
       title: typeof patch.title === 'string' && patch.title.trim() ? patch.title.trim() : template.title,
-      energyValue: patch.energyValue ? Math.max(1, Math.min(20, Number(patch.energyValue))) : template.energyValue,
-      estimatedMinutes: patch.estimatedMinutes
-        ? Math.max(1, Number(patch.estimatedMinutes))
-        : template.estimatedMinutes
+      energyValue: patch.energyValue ? Math.max(1, Math.min(24, Number(patch.energyValue))) : template.energyValue,
+      estimatedMinutes: patch.estimatedMinutes ? Math.max(1, Number(patch.estimatedMinutes)) : template.estimatedMinutes
     };
   });
   return state;
@@ -843,7 +1156,8 @@ export function exportFamilyData(stateInput: FamilyState | Partial<FamilyState>)
       dailyTasks: state.dailyTasks,
       checkIns: state.checkIns,
       energyLedger: state.energyLedger,
-      aiMessageLogs: state.aiMessageLogs
+      aiMessageLogs: state.aiMessageLogs,
+      activityLog: state.activityLog
     },
     null,
     2

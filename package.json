@@ -1,6 +1,6 @@
 {
   "name": "daughter-cloud-pet-web",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "private": true,
   "type": "module",
   "description": "A child-safe local-first web app for a daughter's personal learning-habit cloud pet.",
