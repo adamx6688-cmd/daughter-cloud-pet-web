@@ -1,0 +1,40 @@
+{
+  "name": "daughter-cloud-pet-web",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "description": "A child-safe local-first web app for a daughter's personal learning-habit cloud pet.",
+  "scripts": {
+    "dev": "vite --host 0.0.0.0",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview --host 0.0.0.0",
+    "test": "vitest run",
+    "test:e2e": "playwright test",
+    "test:a11y": "playwright test --grep @a11y",
+    "preflight": "node tests/preflight.js",
+    "qa": "npm run preflight && npm run test && npm run build && npm run test:e2e"
+  },
+  "keywords": [
+    "learning-habits",
+    "virtual-pet",
+    "family-web-app",
+    "child-safety"
+  ],
+  "license": "UNLICENSED",
+  "dependencies": {
+    "lucide-react": "^0.468.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "^4.10.2",
+    "@playwright/test": "^1.61.0",
+    "@types/node": "^26.0.0",
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "@vitejs/plugin-react": "^6.0.2",
+    "typescript": "^5.6.3",
+    "vite": "^8.0.16",
+    "vitest": "^4.1.9"
+  }
+}

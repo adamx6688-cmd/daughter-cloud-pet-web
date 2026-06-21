@@ -1,0 +1,26 @@
+node_modules/
+miniprogram_npm/
+.DS_Store
+*.log
+private.*
+*.key
+*.pem
+project.private.config.json
+coverage/
+dist/
+.preview/
+test-results/
+playwright-report/
+.netlify/
+*.tsbuildinfo
+playwright.config.js
+playwright.config.d.ts
+vite.config.js
+vite.config.d.ts
+
+# Legacy exploration artifacts, not part of the current web delivery path.
+miniprogram/
+cloudfunctions/
+preview-web/
+project.config.json
+scripts/
