@@ -49,6 +49,12 @@ npm run dev
 
 默认开发地址是 Vite 输出的本机地址，常见为 `http://localhost:5173/`。
 
+## 在线体验
+
+公开 HTTPS 地址：
+
+https://adamx6688-cmd.github.io/daughter-cloud-pet-web/
+
 ## 验证
 
 ```bash
@@ -75,3 +81,5 @@ npx netlify deploy --prod
 ```
 
 如果没有 Netlify 登录态，CLI 会要求登录或设置 `NETLIFY_AUTH_TOKEN`。部署产物目录是 `dist/`。
+
+当前也已通过 GitHub Pages 发布，发布分支为 `gh-pages`。

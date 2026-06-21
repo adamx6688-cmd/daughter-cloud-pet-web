@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 
 test.describe('visual smoke @visual', () => {
   test('desktop and mobile layouts render without horizontal overflow', async ({ page }, testInfo) => {
-    await page.goto('/');
+    await page.goto('./');
     await expect(page.getByRole('heading', { name: '今日小目标' })).toBeVisible();
 
     const desktop = await page.screenshot({

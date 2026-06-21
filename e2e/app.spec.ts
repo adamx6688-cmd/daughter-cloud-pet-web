@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 
 test.describe('cloud pet web app', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/');
+    await page.goto('./');
   });
 
   test('child completes tasks and parent confirms pending work', async ({ page }) => {

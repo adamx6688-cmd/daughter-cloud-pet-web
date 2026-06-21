@@ -1,7 +1,9 @@
 # Release Readiness: 星星云宠物网页版 MVP
 
 日期：2026-06-21  
-状态：本地 QA 通过，等待稳定 HTTPS 部署  
+状态：已通过本地 QA 与生产 URL smoke  
+
+生产体验地址：`https://adamx6688-cmd.github.io/daughter-cloud-pet-web/`
 
 ## Scope
 
@@ -32,6 +34,8 @@
 | `npm run test:e2e` | Pass: 12 tests, desktop + mobile |
 | `npm run qa` | Pass |
 | `npm audit --audit-level=moderate` | Pass: 0 vulnerabilities |
+| GitHub Pages HEAD | Pass: HTTP 200 |
+| Production Chromium smoke | Pass: 6 tests |
 
 ## E2E Coverage
 
@@ -51,12 +55,12 @@
 
 ## Go/No-Go
 
-当前 Go/No-Go：Go for stable HTTPS deployment.
+当前 Go/No-Go：Go for family trial.
 
-Release 仍未完成的唯一门禁：
+已完成：
 
-- 部署到 Netlify/Vercel/Cloudflare Pages。
-- 对生产 URL 再跑 smoke test。
+- 部署到 GitHub Pages。
+- 对生产 URL 跑 Chromium smoke、a11y、视觉冒烟。
 
 ## Rollback
 

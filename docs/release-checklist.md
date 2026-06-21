@@ -10,6 +10,7 @@
 - [x] `npm run build` 通过。
 - [x] `npm audit --audit-level=moderate` 为 0 漏洞。
 - [x] 部署配置 `netlify.toml` 指向 `npm run build` 和 `dist/`。
+- [x] GitHub Pages `gh-pages` 静态部署已启用。
 
 ## QA & Testing
 
@@ -39,12 +40,12 @@
 ## Deployment
 
 - [x] 生产构建产物已生成到 `dist/`。
-- [ ] Netlify/Vercel/Cloudflare Pages 稳定 HTTPS 链接已部署。
-- [ ] 部署后生产 URL smoke test 通过。
+- [x] 稳定 HTTPS 链接已部署：`https://adamx6688-cmd.github.io/daughter-cloud-pet-web/`
+- [x] 部署后生产 URL smoke test 通过。
 
 ## Go/No-Go
 
-当前状态：本地 QA 通过，可以进入稳定 HTTPS 部署。  
+当前状态：Go，已完成稳定 HTTPS 部署。
 
 No-Go 条件：
 
