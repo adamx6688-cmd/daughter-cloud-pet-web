@@ -35,7 +35,7 @@
 | `npm run qa` | Pass |
 | `npm audit --audit-level=moderate` | Pass: 0 vulnerabilities |
 | GitHub Pages HEAD | Pass: HTTP 200 |
-| Production Chromium smoke | Pass: 6 tests |
+| Production desktop + mobile smoke | Pass: 12 tests |
 
 ## E2E Coverage
 
@@ -60,7 +60,7 @@
 已完成：
 
 - 部署到 GitHub Pages。
-- 对生产 URL 跑 Chromium smoke、a11y、视觉冒烟。
+- 对生产 URL 跑桌面与移动 Playwright smoke、a11y、视觉冒烟。
 
 ## Rollback
 
